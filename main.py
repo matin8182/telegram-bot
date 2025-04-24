@@ -203,7 +203,7 @@ async def register_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if code == ADMIN_CODE:
         admins.add(user_id)
         vip_users[user_id] = float('inf')
-        reminders_sent[user_id] = {"under_3_days": False, "under_1_day": False, "expired": False}
+        reminders_sent[user_id] = {"    {"under_3_days": False, "under_1_day": False, "expired": False}
         await update.message.reply_text("شما ادمین شدید!", reply_markup=ADMIN_MENU)
     else:
         await update.message.reply_text("دستور نادرست!", reply_markup=ADMIN_MENU if user_id in admins else ReplyKeyboardRemove())
@@ -284,7 +284,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("تعداد دقیقه‌های اشتراک VIP رو وارد کن (مثلاً 60 برای 1 ساعت):", reply_markup=ReplyKeyboardMarkup([["لغو"]], resize_keyboard=True))
             else:
                 await update.message.reply_text("کاربر پیدا نشد!", reply_markup=ADMIN_MENU)
-                context.user_data.pop("state", scaNone)
+                context.user_data.pop("state", None)
             return
         if context.user_data.get("state") == "register_vip_minutes":
             if text == "لغو":
@@ -530,6 +530,12 @@ application.add_handler(MessageHandler(filters.VIDEO, lambda update, context: fo
 application.add_handler(MessageHandler(filters.VOICE, lambda update, context: forward_message_to_all(update, context, context.user_data.get("send_target", "all"))))
 application.add_handler(MessageHandler(filters.Document, lambda update, context: forward_message_to_all(update, context, context.user_data.get("send_target", "all"))))
 
+# مسیر ریشه برای تست سرور
+@app.get("/")
+async def root():
+    print("Root endpoint accessed")
+    return {"message": "Server is running!"}
+
 # مسیر Webhook
 @app.post(f"/{TOKEN}")
 async def webhook(request: Request):
@@ -541,14 +547,19 @@ async def webhook(request: Request):
 # تنظیم Webhook در هنگام شروع
 @app.get("/set_webhook")
 async def set_webhook():
-    # در Vercel، باید URL به صورت دستی تنظیم بشه یا از متغیر محیطی استفاده کنی
-    # برای تست، می‌تونی URL رو به صورت دستی وارد کنی
-    webhook_url = f"https://telegram-bot-ztif-45602npmq-matins-projects-5a6d3beb5.vercel.app/{TOKEN}"
-    success = await application.bot.set_webhook(url=webhook_url)
-    if success:
-        return "Webhook set successfully!", 200
-    else:
-        return "Failed to set webhook!", 500
+    try:
+        webhook_url = f"https://telegram-bot-ztif-45602npmq-matins-projects-5a6d3beb5.vercel.app/{TOKEN}"
+        print(f"Setting webhook to: {webhook_url}")
+        success = await application.bot.set_webhook(url=webhook_url)
+        if success:
+            print("Webhook set successfully!")
+            return "Webhook set successfully!", 200
+        else:
+            print("Failed to set webhook!")
+            return "Failed to set webhook!", 500
+    except Exception as e:
+        print(f"Error setting webhook: {e}")
+        return f"Error setting webhook: {e}", 500
 
 # اجرای Job Queue برای یادآوری‌ها
 application.job_queue.run_repeating(send_vip_reminders, interval=3600, first=10)
