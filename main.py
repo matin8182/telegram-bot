@@ -1,4 +1,4 @@
-from flask import Flask, request
+from fastapi import FastAPI, Request, Response
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import json
@@ -6,12 +6,11 @@ import time
 from datetime import datetime, timedelta
 import jdatetime
 import re
-import asyncio
 
-app = Flask(__name__)
+app = FastAPI()
 
 # توکن ربات
-TOKEN = "7728604413:AAEDn6YAkMf1ohttgUsR5FoveUMScyqMmZU"  # توکن ربات خودت
+TOKEN = "7728604413:AAEDn6YAkMf1ohttgUsR5FoveUMScyqMmZU"
 BOT_USERNAME = "@hfhfdhdfgh_bot"
 CHANNEL_ID = "@signalbymatin"
 
@@ -285,7 +284,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("تعداد دقیقه‌های اشتراک VIP رو وارد کن (مثلاً 60 برای 1 ساعت):", reply_markup=ReplyKeyboardMarkup([["لغو"]], resize_keyboard=True))
             else:
                 await update.message.reply_text("کاربر پیدا نشد!", reply_markup=ADMIN_MENU)
-                context.user_data.pop("state", None)
+                context.user_data.pop("state", scaNone)
             return
         if context.user_data.get("state") == "register_vip_minutes":
             if text == "لغو":
@@ -506,7 +505,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text(f"تبریک می‌گم! عضویت VIP شما تأیید شد.\nشما از الان تا {expiration_text} اشتراک VIP دارید.", reply_markup=VIP_USER_MENU)
             else:
                 referral_link = invites.get(chat_id, {}).get("referral_link", generate_referral_link(chat_id))
-                invites[chat_id] = {"invited_count": invited_count, "refer CRM_LINK": referral_link}
+                invites[chat_id] = {"invited_count": invited_count, "referral_link": referral_link}
                 remaining = 4 - invited_count
                 await update.message.reply_text(f"برای عضویت VIP رایگان، باید 4 نفر رو به ربات دعوت کنی.\nتعداد دعوت‌های فعلی: {invited_count}/4\n{remaining} نفر دیگه باقی مونده.\nلینک دعوتت: {referral_link}\nبعد از اینکه 4 نفر با لینکت وارد شدن، دوباره این گزینه رو انتخاب کن.", reply_markup=VIP_MENU)
         elif text == "خرید اشتراک":
@@ -532,16 +531,19 @@ application.add_handler(MessageHandler(filters.VOICE, lambda update, context: fo
 application.add_handler(MessageHandler(filters.Document, lambda update, context: forward_message_to_all(update, context, context.user_data.get("send_target", "all"))))
 
 # مسیر Webhook
-@app.route(f"/{TOKEN}", methods=["POST"])
-async def webhook():
-    update = Update.de_json(request.get_json(), application.bot)
+@app.post(f"/{TOKEN}")
+async def webhook(request: Request):
+    json_data = await request.json()
+    update = Update.de_json(json_data, application.bot)
     await application.process_update(update)
-    return "OK", 200
+    return Response(status_code=200)
 
 # تنظیم Webhook در هنگام شروع
-@app.route("/set_webhook", methods=["GET"])
+@app.get("/set_webhook")
 async def set_webhook():
-    webhook_url = f"https://{request.host}/{TOKEN}"
+    # در Vercel، باید URL به صورت دستی تنظیم بشه یا از متغیر محیطی استفاده کنی
+    # برای تست، می‌تونی URL رو به صورت دستی وارد کنی
+    webhook_url = f"https://telegram-bot-ztif-45602npmq-matins-projects-5a6d3beb5.vercel.app/{TOKEN}"
     success = await application.bot.set_webhook(url=webhook_url)
     if success:
         return "Webhook set successfully!", 200
@@ -549,11 +551,6 @@ async def set_webhook():
         return "Failed to set webhook!", 500
 
 # اجرای Job Queue برای یادآوری‌ها
-async def run_jobs():
-    application.job_queue.run_repeating(send_vip_reminders, interval=3600, first=10)
+application.job_queue.run_repeating(send_vip_reminders, interval=3600, first=10)
 
-if __name__ == "__main__":
-    import uvicorn
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(run_jobs())
-    uvicorn.run(app, host="0.0.0.0", port=5000)
+# FastAPI به طور خودکار توسط gunicorn و uvicorn اجرا می‌شه (از طریق Procfile)
