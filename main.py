@@ -203,8 +203,8 @@ async def register_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if code == ADMIN_CODE:
         admins.add(user_id)
         vip_users[user_id] = float('inf')
-        reminders_sent[user_id] = {"    {"under_3_days": False, "under_1_day": False, "expired": False}
-        await update.message.reply_text("شما ادمین شدید!", reply_markup=ADMIN_MENU)
+reminders_sent[user_id] = {"under_3_days": False, "under_1_day": False, "expired": False}    
+await update.message.reply_text("شما ادمین شدید!", reply_markup=ADMIN_MENU)
     else:
         await update.message.reply_text("دستور نادرست!", reply_markup=ADMIN_MENU if user_id in admins else ReplyKeyboardRemove())
 
