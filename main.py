@@ -520,6 +520,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # تنظیم Webhook
 application = Application.builder().token(TOKEN).build()
+print(f"Application created: {application}")
 
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("check", check))
@@ -562,6 +563,9 @@ async def set_webhook():
         return f"Error setting webhook: {e}", 500
 
 # اجرای Job Queue برای یادآوری‌ها
-application.job_queue.run_repeating(send_vip_reminders, interval=3600, first=10)
+if application.job_queue:
+    application.job_queue.run_repeating(send_vip_reminders, interval=3600, first=10)
+else:
+    print("Job queue is None!")
 
-# FastAPI به طور خودکار توسط gunicorn و uvicorn اجرا می‌شه (از طریق Procfile) 
+# FastAPI به طور خودکار توسط gunicorn و uvicorn اجرا می‌شه (از طریق Procfile)
