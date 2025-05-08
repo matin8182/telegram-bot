@@ -6,6 +6,8 @@ import time
 from datetime import datetime, timedelta
 import jdatetime
 import re
+import os
+import asyncio
 
 app = FastAPI()
 
@@ -518,10 +520,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("نمی‌تونی پیام ارسال کنی!", reply_markup=USER_MENU if chat_id in users else ReplyKeyboardRemove())
         context.user_data.pop("state", None)
 
-# تنظیم Webhook
+# تنظیم Application
 application = Application.builder().token(TOKEN).build()
 print(f"Application created: {application}")
 
+# اضافه کردن هندلرها
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("check", check))
 application.add_handler(CommandHandler("register_admin", register_admin))
@@ -537,21 +540,25 @@ async def root():
     print("Root endpoint accessed")
     return {"message": "Server is running!"}
 
-# مسیر Webhook
-@app.post(f"/{TOKEN}")
+# مسیر Webhook برای درخواست‌های POST
+@app.post("/webhook")
 async def webhook(request: Request):
     json_data = await request.json()
     update = Update.de_json(json_data, application.bot)
     await application.process_update(update)
     return Response(status_code=200)
 
+# مسیر Webhook برای درخواست‌های HEAD (برای رفع خطای 405)
+@app.head("/webhook")
+async def webhook_head():
+    return Response(status_code=200)
+
 # تنظیم Webhook در هنگام شروع
-@app.get("/set_webhook")
 async def set_webhook():
+    webhook_url = f"https://telegram-bot-xc8n.onrender.com/webhook"
+    print(f"Setting webhook to: {webhook_url}")
     try:
-        webhook_url = f"https://telegram-bot.onrender.com/{TOKEN}"
-        print(f"Setting webhook to: {webhook_url}")
-        success = await application.bot.set_webhook(url=webhook_url)
+        success = await application.bot.setWebhook(url=webhook_url)
         if success:
             print("Webhook set successfully!")
             return "Webhook set successfully!", 200
@@ -562,10 +569,33 @@ async def set_webhook():
         print(f"Error setting webhook: {e}")
         return f"Error setting webhook: {e}", 500
 
-# اجرای Job Queue برای یادآوری‌ها
-if application.job_queue:
-    application.job_queue.run_repeating(send_vip_reminders, interval=3600, first=10)
-else:
-    print("Job queue is None!")
+# مسیر دستی برای تنظیم Webhook
+@app.get("/set_webhook")
+async def set_webhook_endpoint():
+    result, status = await set_webhook()
+    return {"message": result}, status
 
-# FastAPI به طور خودکار توسط gunicorn و uvicorn اجرا می‌شه (از طریق Procfile)
+# تابع برای اجرای Job Queue و Webhook
+async def on_startup():
+    # تنظیم Webhook
+    result, status = await set_webhook()
+    print(result)
+    
+    # اجرای Job Queue
+    if application.job_queue:
+        application.job_queue.run_repeating(send_vip_reminders, interval=3600, first=10)
+        print("Job queue started!")
+    else:
+        print("Job queue is None!")
+
+# اجرای برنامه
+if __name__ == "__main__":
+    # اجرای تابع startup
+    asyncio.run(on_startup())
+    
+    # خواندن پورت از متغیر محیطی
+    port = int(os.getenv("PORT", 10000))
+    print(f"Starting server on port {port}")
+    
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=port)
