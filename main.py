@@ -203,8 +203,8 @@ async def register_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if code == ADMIN_CODE:
         admins.add(user_id)
         vip_users[user_id] = float('inf')
-reminders_sent[user_id] = {"under_3_days": False, "under_1_day": False, "expired": False}    
-await update.message.reply_text("شما ادمین شدید!", reply_markup=ADMIN_MENU)
+        reminders_sent[user_id] = {"under_3_days": False, "under_1_day": False, "expired": False}    
+        await update.message.reply_text("شما ادمین شدید!", reply_markup=ADMIN_MENU)
     else:
         await update.message.reply_text("دستور نادرست!", reply_markup=ADMIN_MENU if user_id in admins else ReplyKeyboardRemove())
 
@@ -548,7 +548,7 @@ async def webhook(request: Request):
 @app.get("/set_webhook")
 async def set_webhook():
     try:
-        webhook_url = f"https://telegram-bot-ztif-45602npmq-matins-projects-5a6d3beb5.vercel.app/{TOKEN}"
+        webhook_url = f"https://telegram-bot.onrender.com/{TOKEN}"
         print(f"Setting webhook to: {webhook_url}")
         success = await application.bot.set_webhook(url=webhook_url)
         if success:
@@ -564,4 +564,4 @@ async def set_webhook():
 # اجرای Job Queue برای یادآوری‌ها
 application.job_queue.run_repeating(send_vip_reminders, interval=3600, first=10)
 
-# FastAPI به طور خودکار توسط gunicorn و uvicorn اجرا می‌شه (از طریق Procfile)
+# FastAPI به طور خودکار توسط gunicorn و uvicorn اجرا می‌شه (از طریق Procfile) 
