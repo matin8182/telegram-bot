@@ -16,7 +16,7 @@ TOKEN = "7728604413:AAEDn6YAkMf1ohttgUsR5FoveUMScyqMmZU"
 BOT_USERNAME = "@hfhfdhdfgh_bot"
 CHANNEL_ID = "@signalbymatin"
 
-# دیکشنری‌های موقت برای داده‌ها (به جای فایل)
+# دیکشنری‌های موقت برای داده‌ها
 users = {}
 admins = set()
 vip_users = {}
@@ -540,6 +540,12 @@ async def root():
     print("Root endpoint accessed")
     return {"message": "Server is running!"}
 
+# مسیر HEAD برای ریشه (رفع خطای 405)
+@app.head("/")
+async def root_head():
+    print("Root HEAD request received")
+    return Response(status_code=200)
+
 # مسیر Webhook برای درخواست‌های POST
 @app.post("/webhook")
 async def webhook(request: Request):
@@ -548,7 +554,7 @@ async def webhook(request: Request):
     await application.process_update(update)
     return Response(status_code=200)
 
-# مسیر Webhook برای درخواست‌های HEAD (برای رفع خطای 405)
+# مسیر Webhook برای درخواست‌های HEAD (رفع خطای 405)
 @app.head("/webhook")
 async def webhook_head():
     return Response(status_code=200)
