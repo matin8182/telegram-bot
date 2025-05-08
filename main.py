@@ -522,7 +522,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # تنظیم Application
 application = Application.builder().token(TOKEN).build()
-print(f"Application created: {application}")
+application.initialize()  # مقداردهی اولیه برای سازگاری با نسخه جدید
+print(f"Application created and initialized: {application}")
 
 # اضافه کردن هندلرها
 application.add_handler(CommandHandler("start", start))
@@ -564,6 +565,14 @@ async def set_webhook():
     webhook_url = f"https://telegram-bot-xc8n.onrender.com/webhook"
     print(f"Setting webhook to: {webhook_url}")
     try:
+        # چک کردن وضعیت فعلی Webhook
+        webhook_info = await application.bot.getWebhookInfo()
+        current_url = webhook_info.url
+        if current_url == webhook_url:
+            print("Webhook is already set to the correct URL!")
+            return "Webhook is already set!", 200
+        
+        # تنظیم Webhook جدید
         success = await application.bot.setWebhook(url=webhook_url)
         if success:
             print("Webhook set successfully!")
